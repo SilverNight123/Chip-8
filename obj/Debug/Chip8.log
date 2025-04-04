@@ -1,4 +1,7 @@
-﻿  CPU.cpp
+﻿  Chip8.cpp
+  Platform.cpp
+C:\Users\Silve\OneDrive\Documents\Development\C++\Chip-8\src\Platform.cpp(11,64): warning C4244: 'argument': conversion from 'uint64_t' to 'int', possible loss of data
+C:\Users\Silve\OneDrive\Documents\Development\C++\Chip-8\src\Platform.cpp(11,51): warning C4244: 'argument': conversion from 'uint64_t' to 'int', possible loss of data
   main.cpp
   Generating Code...
   Chip8.vcxproj -> C:\Users\Silve\OneDrive\Documents\Development\C++\Chip-8\bin\Debug\Chip8.exe

@@ -9,12 +9,18 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="headers\CPU.h">
+    <ClInclude Include="headers\Chip8.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Platform.h">
       <Filter>headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\CPU.cpp">
+    <ClCompile Include="src\Chip8.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\main.cpp">

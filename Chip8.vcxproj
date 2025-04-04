@@ -100,10 +100,12 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="headers\CPU.h" />
+    <ClInclude Include="headers\Chip8.h" />
+    <ClInclude Include="headers\Platform.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\CPU.cpp" />
+    <ClCompile Include="src\Chip8.cpp" />
+    <ClCompile Include="src\Platform.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
