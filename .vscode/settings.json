@@ -52,7 +52,9 @@
         "algorithm": "cpp",
         "optional": "cpp",
         "string": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "sstream": "cpp",
+        "vector": "cpp"
     },
     "Lua.diagnostics.enabled": [
         "undefined-global"

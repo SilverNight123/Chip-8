@@ -27,12 +27,12 @@ project "Chip8"
     
     -- Add headers directory to include path
     includedirs {
-        "headers",          -- This makes #include "CPU.h" work
-        "C:/SDL2/include"   -- SDL2 path
+        "headers",         
+        "C:/SDL2/include"   
     }
     
     -- SDL2 path configuration
-    SDL2_PATH = "C:/SDL2"   -- This should match your path in c_cpp_properties.json
+    SDL2_PATH = "C:/SDL2"   
     
     filter "system:windows"
         defines { "WINDOWS" }
