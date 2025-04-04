@@ -1,11 +1,6 @@
 #pragma once
-#include<iostream>
-#include<sstream>
-#include<fstream>
-#include<cstdint>
-#include<array>
 #include<vector>
-#include<algorithm>
+#include<array>
 
 #define START_ADDR 0x200
 #define FONT_SIZE 0x80
@@ -15,7 +10,7 @@
 class Chip8
 {
 public:
-    Chip8(/* args */);
+    Chip8(std::string file);
     ~Chip8();
 
     void fetch();

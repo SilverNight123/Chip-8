@@ -1,6 +1,12 @@
+#include<iostream>
+#include<sstream>
+#include<fstream>
+#include<cstdint>
+
+#include<algorithm>
 #include "Chip8.h"
 
-Chip8::Chip8()
+Chip8::Chip8(std::string file)
 {
     for(auto& reg : V)
     {
@@ -11,7 +17,7 @@ Chip8::Chip8()
         d = 0;
     }
 
-    std::vector<uint8_t> rom = LoadRom("chip8-roms/games/Airplane.ch8");
+    std::vector<uint8_t> rom = LoadRom(file);
 
     if(rom.size() > (MEMORY_SIZE - START_ADDR))
     {
@@ -69,6 +75,15 @@ void Chip8::fetch()
     pc += 2;
 
     execute(opcode);
+
+    if(delay_timer >= 0)
+    {
+        delay_timer--;
+    }
+    if(sound_timer >= 0)
+    {
+        sound_timer--;
+    }
     
 
 }
@@ -78,7 +93,7 @@ void Chip8::execute(uint16_t op)
     switch (op & 0xf000)
     {
 
-        case 0x0000: //0nnn
+        case 0x0000:
         {
             switch (op)
             {
@@ -90,7 +105,7 @@ void Chip8::execute(uint16_t op)
             break;
             
             default:
-                printf("Unknow opcode {%d} 0x0000 \n", op);
+             printf("Unknown 0x0000 opcode: 0x%04X\n", op);
             break;
             }
         }
@@ -118,7 +133,7 @@ void Chip8::execute(uint16_t op)
         break;
         case 0x8000:
         {
-            switch(op)
+            switch(op & 0x000F)
             {
                 case 0x0000:
                     printf("LD Vx, Vy\n");
@@ -149,7 +164,7 @@ void Chip8::execute(uint16_t op)
                 break;
                 default:
                     printf("Unknow opcode {%d} 0x8000 \n", op);
-                 break;
+                break;
             }
         }
         break;
@@ -166,11 +181,11 @@ void Chip8::execute(uint16_t op)
             printf("RND Vx, byte\n");
         break;
         case 0xD000:
-            printf("DRW Vx, Vy, nibble\n");
+            printf("DRW Vx, Vy, %X\n", op & 0x000F);
         break;
         case 0xE000:
         {
-            switch (op)
+            switch (op &0xF0FF)
             {
             case 0x009E:
                 printf("SKP Vx\n");
@@ -179,16 +194,20 @@ void Chip8::execute(uint16_t op)
                 printf("SKNP Vx\n");
             break;
             default:
-                printf("Unknow opcode {%d} 0xE000 \n", op);
+                printf("Unknown 0xF000 opcode: 0x%04X\n", op);
                 break;
             }
         }
+        break;
         case 0xF000:
         {
-            switch (op)
+            switch (op & 0xf0ff)
             {
-            case 0x000A:
+            case 0x0007:
                 printf("LD Vx, DT\n");
+                break;
+            case 0x000A:
+                printf("LD Vx, K\n");
                 break;
             case 0x0015:
                 printf("LD Vx, K\n");
@@ -212,12 +231,12 @@ void Chip8::execute(uint16_t op)
                 printf("LD Vx, [I]\n");
             break;
             default:
-                printf("Unknow opcode {%d} 0xF000 \n", op);
+                printf("Unknown 0xF000 opcode: 0x%04X\n", op);
                 break;
             }
         }
         default:
-        printf("Unknow opcode {%d}\n", op);
+             printf("Unknown opcode: 0x%04X\n", op);
         break;
 
     }
