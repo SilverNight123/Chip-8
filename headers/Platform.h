@@ -3,16 +3,20 @@
 #include<string>
 #include<cstdint>
 #include <iostream>
-
+#include<array>
 
 class Platform
 {
 public:
-    Platform(std::string title, uint64_t window_width, uint64_t window_height,
-        uint64_t texture_width, uint64_t texture_height);
+    Platform(std::string title, int x, int y, int w, int h, uint32_t flags);
     ~Platform();
-    void Update();
+
+    void Update(std::array<uint32_t , 64 * 32> v, uint32_t pitch);
+  
     void Input();
+    SDL_Renderer* GetRenderer();
+    SDL_Texture* GetTexture();
+    SDL_Window* GetWindow();
 
 private:
     SDL_Window* window;
