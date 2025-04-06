@@ -16,7 +16,6 @@ public:
     ~Chip8();
 
     void fetch();
-    void execute(uint16_t op, SDL_Event event);
 
     std::vector<uint8_t> LoadRom(std::string rom);
 
@@ -40,6 +39,8 @@ private:
     std::array<uint16_t, 16> stack;
     uint16_t clock_cycle;
 
+    bool modernShiftBehavior = true;
+
     uint8_t delay_timer;
     uint8_t sound_timer;
     std::array<uint32_t, VIDEO_WIDTH * VIDEO_HEIGHT> video;
@@ -47,7 +48,10 @@ private:
 
     SDL_Event event;
     bool isKeyPressed(uint8_t chip8Key);
-    std::array<bool, 16> keypad;
+    std::array<bool, 16> keypad = {false};
+
+    void execute(uint16_t op, SDL_Event event);
+
 
   
 };

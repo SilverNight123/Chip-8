@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
     }
-    std::string filepath = "chip8-roms/games/4-flags.ch8";
+    std::string filepath = "chip8-roms/games/paddles.ch8";
 
     Chip8 chip8 = Chip8(filepath);
 
@@ -26,15 +26,12 @@ int main(int argc, char* argv[]) {
 
     int pitch = VIDEO_WIDTH * sizeof(uint32_t); // 64 * 4 = 256
     
-
-
     bool quit = false;
     while( !quit )
     {
         chip8.updateTimers();
         chip8.fetch();
 
-      
         SDL_Event e;
         //Handle events on queue
         while( SDL_PollEvent( &e ) != 0 )
@@ -55,16 +52,13 @@ int main(int argc, char* argv[]) {
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
-        SDL_Delay(4);
+        SDL_Delay(2);
     }
+
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
 
-
-
     return 0;
-    
-    
 }

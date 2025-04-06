@@ -3,12 +3,12 @@
 #include<fstream>
 #include<cstdint>
 #include<algorithm>
+#include <ctime>
 #include "SDL.h"
 #include "Chip8.h"
-#include <ctime>
 
 
-#define BITS sizeof(int) * 8 
+
 
 const unsigned char fontsets[FONTSET_SIZE] =
 {
@@ -71,8 +71,6 @@ Chip8::Chip8(std::string file)
 
 }
 
-
-
 Chip8::~Chip8()
 {
 }
@@ -111,27 +109,26 @@ std::array<uint32_t, VIDEO_WIDTH * VIDEO_HEIGHT> Chip8::GetVideo()
     return video;
 }
 void Chip8::handleKeyEvent(SDL_Event event) {
-    // Store the event for use in execute()
-    this->event = event;
-    
-    // Update keypad state
     if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
         bool pressed = (event.type == SDL_KEYDOWN);
         
-        // Map SDL keys to CHIP-8 keypad
         switch (event.key.keysym.sym) {
-            case SDLK_1: keypad[0x1] = pressed; break;
+            // Original CHIP-8 keypad layout:
+            // 1 2 3 C       -> 1 2 3 4
+            // 4 5 6 D       -> Q W E R
+            // 7 8 9 E       -> A S D F
+            // A 0 B F       -> Z X C V
+
+            case SDLK_1: keypad[0x7] = pressed; break;
             case SDLK_2: keypad[0x2] = pressed; break;
             case SDLK_3: keypad[0x3] = pressed; break;
-            case SDLK_4: keypad[0xC] = pressed; break;
-            
-            case SDLK_q: keypad[0x4] = pressed; break;
-            case SDLK_w: keypad[0x5] = pressed; break;
+            case SDLK_q: keypad[0x1] = pressed; break;
+            case SDLK_w: keypad[0x5] = pressed; break;  
             case SDLK_e: keypad[0x6] = pressed; break;
-            case SDLK_r: keypad[0xD] = pressed; break;
+            case SDLK_a: keypad[0x4] = pressed; break;
+            case SDLK_s: keypad[0x8] = pressed; break;  
             
-            case SDLK_a: keypad[0x7] = pressed; break;
-            case SDLK_s: keypad[0x8] = pressed; break;
+            
             case SDLK_d: keypad[0x9] = pressed; break;
             case SDLK_f: keypad[0xE] = pressed; break;
             
@@ -143,6 +140,13 @@ void Chip8::handleKeyEvent(SDL_Event event) {
             default: break;
         }
     }
+  
+}
+bool Chip8::isKeyPressed(uint8_t chip8Key) {
+    if (chip8Key > 0xF) {
+        return false; // Invalid key
+    }
+    return keypad[chip8Key];
 }
 void Chip8::updateTimers()
 {
@@ -184,12 +188,11 @@ void Chip8::updateTimers()
 
 void Chip8::fetch()
 {
-
     uint16_t opcode = (memory[pc] << 8) | memory[pc + 1];
 
     pc += 2;
+
     //Avoid code duplication
-    
     X = (opcode & 0x0f00) >> 8;
 
     Y = (opcode & 0x00F0) >> 4;
@@ -200,23 +203,14 @@ void Chip8::fetch()
 
     NNN = opcode & 0x0FFF;
 
-
     execute(opcode, event);
-    
-
 }
 
-bool Chip8::isKeyPressed(uint8_t chip8Key) {
-    if (chip8Key > 0xF) {
-        return false; // Invalid key
-    }
-    return keypad[chip8Key];
-}
+
 void Chip8::execute(uint16_t op, SDL_Event event)
 {
     switch (op & 0xf000)
     {
-
         case 0x0000:
         {
             switch (op)
@@ -323,15 +317,15 @@ void Chip8::execute(uint16_t op, SDL_Event event)
 
                 break;
                 case 0x0006: //SHR Vx {, Vy}
-                   if(V[X] & 0x1)
-                   {
-                        V[0xF] = 1;
-                   }
-                   else
-                   {
-                        V[0xF] = 0;
-                   }
-                   V[X] >>= 1;
+                
+                    if (modernShiftBehavior) {
+                        V[0xF] = V[X] & 0x1;
+                        V[X] >>= 1;
+                    } else {
+                        V[X] = V[Y];
+                        V[0xF] = V[X] & 0x1;
+                        V[X] >>= 1;
+                    }
                 break;
                 case 0x0007: //SUBN Vx, Vy
                     if(V[Y] > V[X])
@@ -347,9 +341,9 @@ void Chip8::execute(uint16_t op, SDL_Event event)
                 break;
                 case 0x000E://SHL Vx {, Vy}
                 {
-                    
-                    V[0xf] = V[X] >> 7;
-                    V[X] <<= 1;
+                   
+                    V[0xF] = (V[X] & 0x80) >> 7; // Set VF to most significant bit of VX
+                    V[X] <<= 1; // Shift VX left by 1
                 }
                 break;
                 default:
@@ -376,55 +370,57 @@ void Chip8::execute(uint16_t op, SDL_Event event)
         break;
         case 0xD000: //DRW Vx, Vy
         {
+            printf("Drawing paddle at V[%X]=%d, V[%X]=%d\n", 
+                X, V[X], Y, V[Y]);
+
+            if (N == 0) {  // Special case for ball
+                memset(video.data(), 0, sizeof(video));
+            }
             uint8_t x = V[X] % VIDEO_WIDTH;
             uint8_t y = V[Y] % VIDEO_HEIGHT;
             uint8_t height = N;
-        
-            V[0xF] = 0;
+            
+            V[0xF] = 0; // Reset collision flag
             
             for(int row = 0; row < height; row++) {
+                if(y + row >= VIDEO_HEIGHT) break; // Stay within bounds
+                
                 uint8_t spriteByte = memory[I + row];
                 for(int col = 0; col < 8; col++) {
+                    if(x + col >= VIDEO_WIDTH) break; // Stay within bounds
+                    
                     if((spriteByte & (0x80 >> col)) != 0) {
                         int pixelPos = (y + row) * VIDEO_WIDTH + (x + col);
-                        if(pixelPos < video.size()) {
-                            if(video[pixelPos] == 0xFFFFFFFF) {
-                                V[0xF] = 1;
-                            }
-                            video[pixelPos] ^= 0xFFFFFFFF;
+                        if(video[pixelPos] == 0xFFFFFFFF) {
+                            V[0xF] = 1; // Set collision flag
                         }
+                        video[pixelPos] ^= 0xFFFFFFFF;
                     }
                 }
             }
-            
         }
         break;
         case 0xE000:
         {
+            printf("E000 opcode: 0x%04X, checking key 0x%X\n", op, V[X]);
             switch (op &0xF0FF)
             {
-            case 0x009E: //SKP Vx
+            case 0xE09E: //SKP Vx
             {
-                if(event.type == SDL_KEYDOWN)
-                {
-                    uint8_t chip8key = V[X];
-                    if(isKeyPressed(chip8key))
-                    {
-                        pc += 2;
-                    }
+                printf("ROM checking if key %X is pressed\n", V[X]);
+                if (isKeyPressed(V[X])) {
+                    pc += 2;
                 }
+                printf("Checking key %X - State: %d\n", V[X], isKeyPressed(V[X]));
             } 
             break;
-            case 0x00A1://SKNP Vx
+            case 0xE0A1://SKNP Vx
             {
-                if (event.type == SDL_KEYUP) {
-                    // Convert the CHIP-8 key value in Vx to the corresponding SDL key
-                    uint8_t chip8Key = V[X];
-                    // If the key is not pressed, skip the next instruction
-                    if (!isKeyPressed(chip8Key)) {
-                        pc += 2;
-                    }
+                printf("ROM checking if key %X is NOT pressed\n", V[X]);
+                if (!isKeyPressed(V[X])) {
+                    pc += 2;
                 }
+                printf("Checking key %X - State: %d\n", V[X], isKeyPressed(V[X]));
             }
                
             break;
@@ -444,14 +440,15 @@ void Chip8::execute(uint16_t op, SDL_Event event)
             case 0x000A: // LD Vx, K
             {
                 bool key_pressed = false;
-                uint8_t chip8Key = V[X];
-                while(!key_pressed)
-                {
-                    if(isKeyPressed(chip8Key))
-                    {
-                        V[X] = chip8Key;
+                for (uint8_t i = 0; i < 16; ++i) {
+                    if (keypad[i]) {
+                        V[X] = i;
+                        key_pressed = true;
                         break;
                     }
+                }
+                if (!key_pressed) {
+                    pc -= 2; // Retry this instruction next cycle
                 }
             }
                 break;
