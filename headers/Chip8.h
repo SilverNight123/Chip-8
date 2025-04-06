@@ -1,6 +1,8 @@
 #pragma once
 #include<vector>
 #include<array>
+#include "SDL_mixer.h"
+
 
 #define START_ADDR 0x200
 #define FONTSET_SIZE 0x80
@@ -15,7 +17,10 @@ public:
     Chip8(std::string file);
     ~Chip8();
 
+    void Reset();
+
     void fetch();
+
 
     std::vector<uint8_t> LoadRom(std::string rom);
 
@@ -52,6 +57,9 @@ private:
 
     void execute(uint16_t op, SDL_Event event);
 
+    std::string soundfilepath;
+
+    Mix_Chunk* sound = nullptr;
 
   
 };

@@ -2,7 +2,7 @@
 #include "SDL.h"
 #include<string>
 #include<cstdint>
-#include <iostream>
+#include<iostream>
 #include<array>
 
 class Platform

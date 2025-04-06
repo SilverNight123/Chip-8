@@ -36,7 +36,7 @@ project "Chip8"
     
     filter "system:windows"
         defines { "WINDOWS" }
-        links { "SDL2", "SDL2main" }
+        links { "SDL2", "SDL2main", "SDL2_mixer"}
         libdirs { SDL2_PATH .. "/lib/x64" }
         
     filter "configurations:Debug"
@@ -57,3 +57,14 @@ project "Chip8"
         postbuildcommands {
             "{COPY} " .. SDL2_PATH .. "/lib/x64/SDL2.dll %{cfg.targetdir}"
         }
+        
+    filter { "system:windows", "configurations:Debug" }
+        postbuildcommands {
+            "{COPY} " .. SDL2_PATH .. "/lib/x64/SDL2_mixer.dll %{cfg.targetdir}"
+        }
+        
+    filter { "system:windows", "configurations:Release" }
+        postbuildcommands {
+            "{COPY} " .. SDL2_PATH .. "/lib/x64/SDL2_mixer.dll %{cfg.targetdir}"
+        }
+        

@@ -61,6 +61,12 @@ Chip8::Chip8(std::string file)
 
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
+    if( Mix_OpenAudio( 22050, MIX_DEFAULT_FORMAT, 2, 4096 ) == -1 )
+    {
+        throw std::runtime_error("Failed to initalize SDL_Mixer");
+    }
+
+    sound =Mix_LoadWAV("8-bit-game-sfx-sound-21-269970.mp3");
     pc = START_ADDR;
     sp = 0;
     I = 0;
@@ -73,6 +79,43 @@ Chip8::Chip8(std::string file)
 
 Chip8::~Chip8()
 {
+    Mix_FreeChunk( sound);
+    Mix_CloseAudio();
+}
+
+void Chip8::Reset()
+{
+    for(auto& reg : V)
+    {
+        reg = 0;
+    }
+    for(auto& d : video)
+    {
+        d = 0x00000000;
+    }
+    for(int i = 0; i < FONTSET_SIZE; i++)
+    {
+        memory[FONTSET_START_ADDR  + i] = fontsets[i];
+    }
+
+
+    last_timer_update = SDL_GetTicks64();
+
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
+    if( Mix_OpenAudio( 22050, MIX_DEFAULT_FORMAT, 2, 4096 ) == -1 )
+    {
+        throw std::runtime_error("Failed to initalize SDL_Mixer");
+    }
+
+    sound =Mix_LoadWAV("8-bit-game-sfx-sound-21-269970.mp3");
+    pc = START_ADDR;
+    sp = 0;
+    I = 0;
+    delay_timer = 0;
+    sound_timer = 0;
+    X = Y = N = NN = 0;
+    NNN = 0;
 }
 
 std::vector<uint8_t> Chip8::LoadRom(std::string rom)
@@ -174,6 +217,9 @@ void Chip8::updateTimers()
         // Decrement sound timer if it's greater than 0
         if (sound_timer > 0)
         {
+            Mix_PlayChannel(-1, sound, 0 );
+
+
             if (decrements >= sound_timer)
                 sound_timer = 0;
             else
@@ -370,12 +416,10 @@ void Chip8::execute(uint16_t op, SDL_Event event)
         break;
         case 0xD000: //DRW Vx, Vy
         {
-            printf("Drawing paddle at V[%X]=%d, V[%X]=%d\n", 
-                X, V[X], Y, V[Y]);
-
             if (N == 0) {  // Special case for ball
                 memset(video.data(), 0, sizeof(video));
             }
+            
             uint8_t x = V[X] % VIDEO_WIDTH;
             uint8_t y = V[Y] % VIDEO_HEIGHT;
             uint8_t height = N;
@@ -407,20 +451,16 @@ void Chip8::execute(uint16_t op, SDL_Event event)
             {
             case 0xE09E: //SKP Vx
             {
-                printf("ROM checking if key %X is pressed\n", V[X]);
                 if (isKeyPressed(V[X])) {
                     pc += 2;
                 }
-                printf("Checking key %X - State: %d\n", V[X], isKeyPressed(V[X]));
             } 
             break;
             case 0xE0A1://SKNP Vx
             {
-                printf("ROM checking if key %X is NOT pressed\n", V[X]);
                 if (!isKeyPressed(V[X])) {
                     pc += 2;
                 }
-                printf("Checking key %X - State: %d\n", V[X], isKeyPressed(V[X]));
             }
                
             break;
@@ -474,14 +514,12 @@ void Chip8::execute(uint16_t op, SDL_Event event)
                 {
                     memory[I + i] = V[i];
                 }
-               // I += X + 1; // Original CHIP-8 behavior - increment I register
                 break;
             case 0x0065: // LD Vx, [I]
                 for(uint8_t i = 0; i <= X; ++i)
                 {
                     V[i] = memory[I + i];
                 }
-               // I += X + 1; // Original CHIP-8 behavior - increment I register
                 break;
             default:
                 printf("Unknown 0xF000 opcode: 0x%04X\n", op);
