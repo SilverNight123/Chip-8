@@ -5,7 +5,10 @@
 #include<algorithm>
 #include "SDL.h"
 #include "Chip8.h"
+#include <ctime>
 
+
+#define BITS sizeof(int) * 8 
 
 const unsigned char fontsets[FONTSET_SIZE] =
 {
@@ -53,6 +56,10 @@ Chip8::Chip8(std::string file)
     std::copy_n(rom.begin(), rom.size(),memory.begin() + START_ADDR);
 
     std::cout << rom.size();
+
+    last_timer_update = SDL_GetTicks64();
+
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
     pc = START_ADDR;
     sp = 0;
@@ -103,6 +110,78 @@ std::array<uint32_t, VIDEO_WIDTH * VIDEO_HEIGHT> Chip8::GetVideo()
 {
     return video;
 }
+void Chip8::handleKeyEvent(SDL_Event event) {
+    // Store the event for use in execute()
+    this->event = event;
+    
+    // Update keypad state
+    if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+        bool pressed = (event.type == SDL_KEYDOWN);
+        
+        // Map SDL keys to CHIP-8 keypad
+        switch (event.key.keysym.sym) {
+            case SDLK_1: keypad[0x1] = pressed; break;
+            case SDLK_2: keypad[0x2] = pressed; break;
+            case SDLK_3: keypad[0x3] = pressed; break;
+            case SDLK_4: keypad[0xC] = pressed; break;
+            
+            case SDLK_q: keypad[0x4] = pressed; break;
+            case SDLK_w: keypad[0x5] = pressed; break;
+            case SDLK_e: keypad[0x6] = pressed; break;
+            case SDLK_r: keypad[0xD] = pressed; break;
+            
+            case SDLK_a: keypad[0x7] = pressed; break;
+            case SDLK_s: keypad[0x8] = pressed; break;
+            case SDLK_d: keypad[0x9] = pressed; break;
+            case SDLK_f: keypad[0xE] = pressed; break;
+            
+            case SDLK_z: keypad[0xA] = pressed; break;
+            case SDLK_x: keypad[0x0] = pressed; break;
+            case SDLK_c: keypad[0xB] = pressed; break;
+            case SDLK_v: keypad[0xF] = pressed; break;
+            
+            default: break;
+        }
+    }
+}
+void Chip8::updateTimers()
+{
+    // Get current time
+    uint64_t current_time = SDL_GetTicks64();
+    
+    // Calculate time since last update (in milliseconds)
+    uint64_t elapsed = current_time - last_timer_update;
+    
+    // Timers should decrement at 60Hz (every 16.67ms)
+    if (elapsed >= 16.67) // 1000ms / 60 ≈ 16.67ms
+    {
+        // Calculate how many timer decrements to perform
+        int decrements = elapsed / 16.67;
+        
+        // Decrement delay timer if it's greater than 0
+        if (delay_timer > 0)
+        {
+            if (decrements >= delay_timer)
+                delay_timer = 0;
+            else
+                delay_timer -= decrements;
+        }
+        
+        // Decrement sound timer if it's greater than 0
+        if (sound_timer > 0)
+        {
+            if (decrements >= sound_timer)
+                sound_timer = 0;
+            else
+                sound_timer -= decrements;
+        }
+        
+        // Update the last timer update time
+        // We add the actual time used for the decrements to avoid drift
+        last_timer_update += decrements * 16.67;
+    }
+}
+
 void Chip8::fetch()
 {
 
@@ -123,17 +202,15 @@ void Chip8::fetch()
 
 
     execute(opcode, event);
-
-    if(delay_timer >= 0)
-    {
-        delay_timer--;
-    }
-    if(sound_timer >= 0)
-    {
-        sound_timer--;
-    }
     
 
+}
+
+bool Chip8::isKeyPressed(uint8_t chip8Key) {
+    if (chip8Key > 0xF) {
+        return false; // Invalid key
+    }
+    return keypad[chip8Key];
 }
 void Chip8::execute(uint16_t op, SDL_Event event)
 {
@@ -150,10 +227,11 @@ void Chip8::execute(uint16_t op, SDL_Event event)
             case 0x00EE: //RET
                 if(sp == 0)
                 {
-                    throw std::runtime_error("stack overthrow");
+                    throw std::runtime_error("stack overflow");
                 }
+                --sp;
                 pc = stack[sp];
-               --sp;
+              
             break;
             
             default:
@@ -218,7 +296,9 @@ void Chip8::execute(uint16_t op, SDL_Event event)
                     V[X] ^= V[Y];
                 break;
                 case 0x0004: //ADD Vx, Vy
-                    uint8_t sum = V[X] + V[Y];
+                {
+                    uint8_t sum = 0;
+                    sum = V[X] + V[Y];
                     if(sum > 255)
                     {
                         V[0xf] = 1;
@@ -228,7 +308,7 @@ void Chip8::execute(uint16_t op, SDL_Event event)
                         V[0xf] = 0;
                     }
                     V[X] = sum & 0xff;
-
+                }
                 break;
                 case 0x0005://SUB Vx, Vy
                     if(V[X] > V[Y])
@@ -242,14 +322,35 @@ void Chip8::execute(uint16_t op, SDL_Event event)
                     V[X] -= V[Y];
 
                 break;
-                case 0x0006:
-                    printf("SHR Vx {, Vy}\n");
+                case 0x0006: //SHR Vx {, Vy}
+                   if(V[X] & 0x1)
+                   {
+                        V[0xF] = 1;
+                   }
+                   else
+                   {
+                        V[0xF] = 0;
+                   }
+                   V[X] >>= 1;
                 break;
-                case 0x0007:
-                    printf("SUBN Vx, Vy\n");
+                case 0x0007: //SUBN Vx, Vy
+                    if(V[Y] > V[X])
+                    {
+                        V[0xF] = 1;
+                    }
+                    else
+                    {
+                        V[0xf] = 0;
+                    }
+                    V[X] = V[Y] - V[X];
+
                 break;
-                case 0x000E:
-                    printf("SHL Vx {, Vy}\n");
+                case 0x000E://SHL Vx {, Vy}
+                {
+                    
+                    V[0xf] = V[X] >> 7;
+                    V[X] <<= 1;
+                }
                 break;
                 default:
                     printf("Unknown opcode {%d} 0x8000 \n", op);
@@ -258,7 +359,7 @@ void Chip8::execute(uint16_t op, SDL_Event event)
         }
         break;
         case 0x9000: //SNE Vx, Vy
-           if(X != Y)
+           if(V[X] != V[Y])
            {
              pc += 2;
            }
@@ -266,11 +367,12 @@ void Chip8::execute(uint16_t op, SDL_Event event)
         case 0xA000: //LD I, addr
             I = NNN;
         break;
-        case 0xB000:
-            printf("JP V0, addr\n");
+        case 0xB000: //JP V0, addr
+           pc = NNN + V[0];
         break;
-        case 0xC000:
-            printf("RND Vx, byte\n");
+        case 0xC000: //RND Vx, byt
+        V[X] = (std::rand() % 256) & NN;
+
         break;
         case 0xD000: //DRW Vx, Vy
         {
@@ -301,11 +403,30 @@ void Chip8::execute(uint16_t op, SDL_Event event)
         {
             switch (op &0xF0FF)
             {
-            case 0x009E:
-                printf("SKP Vx\n");
+            case 0x009E: //SKP Vx
+            {
+                if(event.type == SDL_KEYDOWN)
+                {
+                    uint8_t chip8key = V[X];
+                    if(isKeyPressed(chip8key))
+                    {
+                        pc += 2;
+                    }
+                }
+            } 
             break;
-            case 0x00A1:
-                printf("SKNP Vx\n");
+            case 0x00A1://SKNP Vx
+            {
+                if (event.type == SDL_KEYUP) {
+                    // Convert the CHIP-8 key value in Vx to the corresponding SDL key
+                    uint8_t chip8Key = V[X];
+                    // If the key is not pressed, skip the next instruction
+                    if (!isKeyPressed(chip8Key)) {
+                        pc += 2;
+                    }
+                }
+            }
+               
             break;
             default:
                 printf("Unknown 0xF000 opcode: 0x%04X\n", op);
@@ -315,44 +436,64 @@ void Chip8::execute(uint16_t op, SDL_Event event)
         break;
         case 0xF000:
         {
-            switch (op & 0xf0ff)
+            switch (op & 0x00FF)
             {
-            case 0x0007:
-                printf("LD Vx, DT\n");
+            case 0x0007: // LD Vx, DT
+                V[X] = delay_timer;
                 break;
-            case 0x000A:
-                printf("LD Vx, K\n");
+            case 0x000A: // LD Vx, K
+            {
+                bool key_pressed = false;
+                uint8_t chip8Key = V[X];
+                while(!key_pressed)
+                {
+                    if(isKeyPressed(chip8Key))
+                    {
+                        V[X] = chip8Key;
+                        break;
+                    }
+                }
+            }
                 break;
-            case 0x0015:
-                printf("LD Vx, K\n");
-            break;
-            case 0x0018:
-                printf("LD ST, Vx\n");
-            break;
-            case 0x001E:
-                printf("ADD I, Vx\n");
-            break;
-            case 0x0029:
-                printf("LD F, Vx\n");
-            break;
-            case 0x0033:
-                printf("LD B, Vx\n");
-            break;
-            case 0x0055:
-                printf("LD [I], Vx\n");
-            break;
-            case 0x0065:
-                printf("LD Vx, [I]\n");
-            break;
+            case 0x0015: // LD DT, Vx
+                delay_timer = V[X];
+                break;
+            case 0x0018: // LD ST, Vx
+                sound_timer = V[X];
+                break;
+            case 0x001E: // ADD I, Vx
+                I += V[X];
+                break;
+            case 0x0029: // LD F, Vx
+                I = FONTSET_START_ADDR + (5 * V[X]);
+                break;
+            case 0x0033: // LD B, Vx
+                memory[I] = (V[X] % 1000) / 100;
+                memory[I + 1] = (V[X] % 100) / 10;
+                memory[I + 2] = (V[X] % 10);
+                break;
+            case 0x0055: // LD [I], Vx
+                for(uint8_t i = 0; i <= X; ++i)
+                {
+                    memory[I + i] = V[i];
+                }
+               // I += X + 1; // Original CHIP-8 behavior - increment I register
+                break;
+            case 0x0065: // LD Vx, [I]
+                for(uint8_t i = 0; i <= X; ++i)
+                {
+                    V[i] = memory[I + i];
+                }
+               // I += X + 1; // Original CHIP-8 behavior - increment I register
+                break;
             default:
                 printf("Unknown 0xF000 opcode: 0x%04X\n", op);
                 break;
             }
+            break; // Make sure we break out of the outer switch
         }
         default:
-             printf("Unknown opcode: 0x%04X\n", op);
-        break;
-
+            printf("Unknown opcode: 0x%04X\n", op);
+            break;
     }
-    
 }

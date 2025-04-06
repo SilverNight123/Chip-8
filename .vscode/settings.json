@@ -54,7 +54,8 @@
         "string": "cpp",
         "fstream": "cpp",
         "sstream": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "random": "cpp"
     },
     "Lua.diagnostics.enabled": [
         "undefined-global"
@@ -64,5 +65,5 @@
     ],
     "Lua.diagnostics.disable": [
         "undefined-global"
-    ]
+    ],
 }

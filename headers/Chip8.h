@@ -16,11 +16,14 @@ public:
     ~Chip8();
 
     void fetch();
-    void execute(uint16_t op, SDL_Event event );
+    void execute(uint16_t op, SDL_Event event);
 
     std::vector<uint8_t> LoadRom(std::string rom);
 
     std::array<uint32_t,VIDEO_WIDTH * VIDEO_HEIGHT> GetVideo();
+    void handleKeyEvent(SDL_Event event);
+    void updateTimers();
+
 private:
     std::array<uint8_t, 16> V; // VF is the flag register.
 
@@ -33,7 +36,7 @@ private:
     uint8_t N;
     uint8_t NN;
     uint16_t NNN;
-
+    uint64_t last_timer_update; 
     std::array<uint16_t, 16> stack;
     uint16_t clock_cycle;
 
@@ -41,5 +44,10 @@ private:
     uint8_t sound_timer;
     std::array<uint32_t, VIDEO_WIDTH * VIDEO_HEIGHT> video;
     std::array<uint8_t, MEMORY_SIZE> memory;
+
     SDL_Event event;
+    bool isKeyPressed(uint8_t chip8Key);
+    std::array<bool, 16> keypad;
+
+  
 };
