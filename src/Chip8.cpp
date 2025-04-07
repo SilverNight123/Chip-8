@@ -104,7 +104,7 @@ void Chip8::Reset()
         throw std::runtime_error("Failed to initalize SDL_Mixer");
     }
 
-    sound =Mix_LoadWAV("8-bit-game-sfx-sound-21-269970.mp3");
+    sound =Mix_LoadWAV("sound_effect.mp3");
     pc = START_ADDR;
     sp = 0;
     I = 0;
