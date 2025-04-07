@@ -3,7 +3,7 @@
 #include<cstdint>
 #include<algorithm>
 #include <ctime>
-#include "SDL.h"Chip-8
+#include "SDL.h"
 #include "Chip8.h"
 
 const unsigned char fontsets[FONTSET_SIZE] =
