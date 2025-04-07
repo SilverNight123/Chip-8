@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
     }
-    std::string filepath = "chip8-roms/games/Airplane.ch8";
+    std::string filepath = "chip8-roms/games/4-flags.ch8";
 
     
 

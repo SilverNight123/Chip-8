@@ -1,14 +1,10 @@
 #include<iostream>
-#include<sstream>
 #include<fstream>
 #include<cstdint>
 #include<algorithm>
 #include <ctime>
 #include "SDL.h"
 #include "Chip8.h"
-
-
-
 
 const unsigned char fontsets[FONTSET_SIZE] =
 {
@@ -236,9 +232,9 @@ void Chip8::fetch()
 {
     uint16_t opcode = (memory[pc] << 8) | memory[pc + 1];
 
+    //Avoid code duplication
     pc += 2;
 
-    //Avoid code duplication
     X = (opcode & 0x0f00) >> 8;
 
     Y = (opcode & 0x00F0) >> 4;
@@ -389,7 +385,7 @@ void Chip8::execute(uint16_t op, SDL_Event event)
                 {
                    
                     V[0xF] = (V[X] & 0x80) >> 7; // Set VF to most significant bit of VX
-                    V[X] <<= 1; // Shift VX left by 1
+                    V[X] <<= 1; 
                 }
                 break;
                 default:
@@ -525,7 +521,7 @@ void Chip8::execute(uint16_t op, SDL_Event event)
                 printf("Unknown 0xF000 opcode: 0x%04X\n", op);
                 break;
             }
-            break; // Make sure we break out of the outer switch
+            break; 
         }
         default:
             printf("Unknown opcode: 0x%04X\n", op);
