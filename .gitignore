@@ -1,0 +1,11 @@
+bin/
+obj/
+Chip8.sln
+Chip8.vcxproj
+Chip-8.vcxproj
+
+Chip8.vcxproj.filters
+Chip8.vcxproj.user
+Chip-8.vcxproj.user
+.vs/
+.vscode/
